@@ -1,0 +1,1 @@
+{"version":3,"sources":["../src/index.js"],"names":["console","log"],"mappings":";;AAAA;;AAEA;;AAEAA,QAAQC,GAAR,CAAY,kBAAZ","file":"index.js","sourcesContent":["import {tester} from './mod.js';\n\ntester();\n\nconsole.log(tester());"]}

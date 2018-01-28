@@ -1,0 +1,1 @@
+{"dependencies":[],"generated":{"js":"'use strict';\n\nObject.defineProperty(exports, \"__esModule\", {\n    value: true\n});\nexports.tester = tester;\n\nvar name = 'Joe';\n\nfunction tester() {\n    console.log('hello ' + name);\n    return name;\n}\n\nexports.default = {\n    tester: tester\n};\n//# sourceMappingURL=mod.js.map"},"hash":"23caeecd5480f4811ad005bdd20c3a99"}
