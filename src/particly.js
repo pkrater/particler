@@ -1,16 +1,17 @@
 // some defaults
 
-//const particles = [];
+// const particles = [];
 // const numParticles = 10
-//const emitRate = 10;
-//const emitBurstNum = 10;
-//const continous = 1;
-//const doBurst = false;
-//let counter = 0;
+// const emitRate = 10;
+// const emitBurstNum = 10;
+// const continous = 1;
+// const doBurst = false;
+// let counter = 0;
 // let ctx;
 // let canvas;
-
+const globals = {};
 const state = {
+  emitters: 0,
   emitRate: 10,
   particles: [],
   emitBurstNum: 10,
@@ -47,8 +48,8 @@ function getRandomStart({ canvas }) {
 
 const particle = (obj) => {
   const defaultState = {
-    x: state.canvas.width / 2, // canvas.width * Math.random();
-    y: state.canvas.height / 2, // canvas.height * Math.random();
+    x: globals.canvas.width / 2, // canvas.width * Math.random();
+    y: globals.canvas.height / 2, // canvas.height * Math.random();
     vx: 4 * Math.random() - 2,
     vy: 4 * Math.random() - 2,
     color: getRandomColor(),
@@ -66,12 +67,13 @@ const particle = (obj) => {
   const innerState = Object.assign(defaultState, obj);
   // const innerState = { ...defaultState, ...obj };
   const checkBounce = (posX, posY) => {
-    posX < 0 || posX > state.canvas.width ? (innerState.vx = -innerState.vx) : innerState.vx;
-    posY < 0 || posY > state.canvas.height ? (innerState.vy = -innerState.vy) : innerState.vy;
+    posX < 0 || posX > globals.canvas.width ? (innerState.vx = -innerState.vx) : innerState.vx;
+    posY < 0 || posY > globals.canvas.height ? (innerState.vy = -innerState.vy) : innerState.vy;
   };
 
   function draw() {
-    const { ctx, shape } = innerState; // console.log(innerState.shape);
+    const { shape } = innerState; // console.log(innerState.shape);
+    const { ctx } = globals;
     if (shape === 'dot') {
       ctx.fillStyle = innerState.color;
       ctx.fillRect(innerState.x, innerState.y, 4, 4);
@@ -88,7 +90,6 @@ const particle = (obj) => {
   }
 
   function update() {
-    
     innerState.vy += innerState.gravity;
     innerState.vx *= innerState.damping;
     innerState.vy *= innerState.damping;
@@ -113,63 +114,69 @@ const particle = (obj) => {
   };
 };
 
-function loop() {
-  //console.log(state);
-  const { canvas, ctx, emitRate } = state;
-  //console.log(canvas, `the context: ${ctx}`);
-  if (state.continous) {
+function initLoop({ canvas, ctx }) {
+  // console.log(state);
+  // const { canvas, ctx } = globals;
+  const { emitRate } = state;
+  state.particles.push(particle(state));
+  const loop = () => {
+    // console.log(canvas, `the context: ${ctx}`);
+    if (state.continous) {
     // console.log(`the counter: ${  counter}`);
-    state.counter += 1;
-    if (state.counter > emitRate) {
-      if (state.doBurst) {
-        burst(
-          getRandomInt(state.emitBurstNum, 100),
-          Object.assign(state, getRandomStart(state), {
-            bounce: false,
-            gravity: 0.03,
-            damping: 0.99,
-            shape: 'dot',
-          }),
-        );
+      state.counter += 1;
+      if (state.counter > emitRate) {
+        if (state.doBurst) {
+          burst(
+            getRandomInt(state.emitBurstNum, 100),
+            Object.assign(state, getRandomStart(globals), {
+              bounce: false,
+              gravity: 0.03,
+              damping: 0.99,
+              shape: 'dot',
+            }),
+          );
+        }
+        state.counter -= state.counter;
+        state.particles.push(particle(state));
       }
-      state.counter -= state.counter;
-      state.particles.push(particle(state));
     }
-  }
+    
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  state.particles.filter(part => !part.dead).forEach((part) => {
-    part.update();
-    part.draw();
-    if (part.die()) {
-      part.dead = true;
-    }
-  });
-
-  requestAnimationFrame(loop);
+    state.particles.filter(part => !part.dead).forEach((part) => {
+      part.update();
+      part.draw();
+      if (part.die()) {
+        part.dead = true;
+      }
+    });
+    window.requestAnimationFrame(loop);
+  };
+  loop();
 }
-
+// emit x amount of particles in one burst
 export function burst(numParticles, obj) {
-  for (let i = 0; i < numParticles; i++) particles.push(particle(obj));
-  // particles = [...Array(numParticles)].map(part => particle(obj))
+  for (let i = 0; i < numParticles; i++) state.particles.push(particle(obj));
+  // non for loop way of doing the same thing...
+  // state.particles = [...Array(numParticles)].forEach((_,i) => state.particles[i].push(particle(obj)));
 }
 
 export function initEmitter(canvas, settings = {}) {
   if (!canvas.nodeName) {
     console.error('canvas not set, no canvas, no particles :(');
-    return JSON.stringify({ ok: false, state: 'no canvas, no particles :(' });
+    return { ok: false, state: 'no canvas, no particles :(' };
   }
   // debugger
   // console.log(`canvas called ${canvas}`);
-  Object.assign(state, settings, {
-    canvas,
-    ctx: canvas.getContext('2d'),
-    // console.log(`context called ${state.ctx}`);
-  });
-  state.canvas.width = window.innerWidth;
-  state.canvas.height = window.innerHeight;
+  globals.canvas = canvas;
+  globals.ctx = canvas.getContext('2d');
+   
+  const newState = Object.assign(state, settings);
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
   // console.log(state);
-  loop();
-  return state;
+   return () => {
+    initLoop(globals);
+  };
 }
